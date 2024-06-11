@@ -1,7 +1,9 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
 // Author: Vasile-Daniel DAN 
 // Start
-// Project: LU Factorization - Doolittle (no pivoting)
+// Project: LU Factorization - Doolittle (WITH pivoting)
 //////////////////////////////////////////////////////////////////////////////////  
 // Functions for printing matrices and arrays
 void printMatrix(int n, double matrix[n][n]) {
@@ -21,10 +23,46 @@ void printArray(int n, double arr[n]){
     }
 }
 
-// LU decomposition function (Doolittle variant)
-void luDecomposition(int n, double a[n][n], double l[n][n], double u[n][n]) {
+// Function to swap two rows in a matrix
+void swapRows(int n, double matrix[n][n], int row1, int row2) {
+    double temp;
+    for (int i = 0; i < n; i++) {
+        temp = matrix[row1][i];
+        matrix[row1][i] = matrix[row2][i];
+        matrix[row2][i] = temp;
+    }
+}
+
+// Function to swap two elements in an array
+void swapElements(double arr[], int i, int j) {
+    double temp = arr[i];
+    arr[i] = arr[j];
+    arr[j] = temp;
+}
+
+// LU decomposition function (Doolittle variant) with pivoting
+void luDecomposition(int n, double a[n][n], double l[n][n], double u[n][n], int pivot[n]) {
     int i, j, k;
     for (i = 0; i < n; i++) {
+        pivot[i] = i;
+    }
+
+    for (i = 0; i < n; i++) {
+        // Partial pivoting
+        double max = fabs(a[i][i]);
+        int maxRow = i;
+        for (k = i + 1; k < n; k++) {
+            if (fabs(a[k][i]) > max) {
+                max = fabs(a[k][i]);
+                maxRow = k;
+            }
+        }
+
+        if (maxRow != i) {
+            swapRows(n, a, i, maxRow);
+            swapElements(pivot, i, maxRow);
+        }
+
         // Initialize U
         for (j = i; j < n; j++) {
             u[i][j] = a[i][j];
@@ -32,6 +70,7 @@ void luDecomposition(int n, double a[n][n], double l[n][n], double u[n][n]) {
                 u[i][j] -= l[i][k] * u[k][j];
             }
         }
+
         // Initialize L
         for (j = i; j < n; j++) {
             if (i == j) {
@@ -47,10 +86,10 @@ void luDecomposition(int n, double a[n][n], double l[n][n], double u[n][n]) {
     }
 }
 
-// Forward substitution to solve Ly = b
-void forwardSubstitution(int n, double l[n][n], double b[n], double y[n]) {
+// Forward substitution to solve Ly = Pb
+void forwardSubstitution(int n, double l[n][n], double b[n], double y[n], int pivot[n]) {
     for (int i = 0; i < n; i++) {
-        y[i] = b[i];
+        y[i] = b[pivot[i]];
         for (int j = 0; j < i; j++) {
             y[i] -= l[i][j] * y[j];
         }
@@ -71,6 +110,7 @@ void backSubstitution(int n, double u[n][n], double y[n], double x[n]) {
 int main() {
     int n = 3;
     double x[3], y[3];
+    int pivot[3];
 
     double a[3][3] = {
         { 1, 2, -1},
@@ -88,14 +128,14 @@ int main() {
 
     double l[3][3] = {0}, u[3][3] = {0};
 
-    luDecomposition(n, a, l, u);
+    luDecomposition(n, a, l, u, pivot);
 
     printf("L matrix:\n");
     printMatrix(n, l);
     printf("U matrix:\n");
     printMatrix(n, u);
 
-    forwardSubstitution(n, l, b, y);
+    forwardSubstitution(n, l, b, y, pivot);
 
     printf("Vector y after forward substitution:\n");
     printArray(n, y);
